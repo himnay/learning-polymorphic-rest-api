@@ -7,10 +7,6 @@ shapes (`CardPayment | UpiPayment | NetBankingPayment`) — done properly with J
 handling, bean validation per subtype, and an OpenAPI contract that documents the
 discriminator.
 
-> **Status: planned.** The repo currently holds only scaffolding (`.gitignore`); this README
-> documents the design the code will implement, so the roadmap is explicit rather than
-> aspirational code.
-
 ---
 
 ## Table of contents
@@ -21,8 +17,9 @@ discriminator.
 4. [OpenAPI: oneOf + discriminator](#4-openapi-oneof--discriminator)
 5. [Validation & error shape](#5-validation--error-shape)
 6. [Security note: why never enable default typing](#6-security-note-why-never-enable-default-typing)
-7. [Planned module layout](#7-planned-module-layout)
-8. [Further reading](#8-further-reading)
+7. [Module layout](#7-module-layout)
+8. [Running & testing](#8-running--testing)
+9. [Further reading](#9-further-reading)
 
 ---
 
@@ -130,21 +127,73 @@ follows:
 - never `Id.CLASS`/`Id.MINIMAL_CLASS` on internet-facing DTOs
 - if dynamic typing is unavoidable, register a strict `PolymorphicTypeValidator`
 
-## 7. Planned module layout
+## 7. Module layout
 
 ```
 learning-polymorphic-rest-api/
-├── pom.xml                        # super-pom parent, Java 25, Spring Boot 4
+├── pom.xml                                # super-pom parent, Java 25, Spring Boot 4
 └── payment-api/
-    ├── src/main/java/...          # sealed DTOs, controller, strategy handlers
-    ├── src/main/resources/        # application-local.yml / application-prod.yml
-    └── src/test/java/unit|intg    # @WebMvcTest subtype round-trips, error cases
+    ├── pom.xml                            # web + validation + springdoc, Boot 4 webmvc test slice
+    └── src
+        ├── main/java/com/org/learning/payment/
+        │   ├── PaymentApiApplication.java # defaults to the `local` profile
+        │   ├── web/
+        │   │   ├── PaymentController.java        # single POST /api/v1/payments + GET /{id}
+        │   │   ├── PaymentControllerAdvice.java  # 400 ProblemDetail (validation, unknown type), 404
+        │   │   └── dto/
+        │   │       ├── PaymentRequest.java           # sealed interface + @JsonTypeInfo/@JsonSubTypes
+        │   │       ├── CardPaymentRequest.java       # "CARD"        — cardNumber (16 digits), cvv (3 digits)
+        │   │       ├── UpiPaymentRequest.java        # "UPI"         — vpa (.+@.+)
+        │   │       ├── NetBankingPaymentRequest.java # "NET_BANKING" — bankCode
+        │   │       └── PaymentResponse.java          # id, type (echoed discriminator), amount, status
+        │   ├── handler/                   # strategy: PaymentHandler<T> + three @Component impls
+        │   ├── service/PaymentService.java       # exhaustive switch dispatch + in-memory store
+        │   └── exception/PaymentNotFoundException.java
+        ├── main/resources/                # application-local.yml / application-prod.yml, banner.txt
+        └── test/java
+            ├── unit/                      # @WebMvcTest subtype round-trips, error cases
+            └── intg/                      # @SpringBootTest + MockMvc full flow
 ```
 
-Roadmap: scaffold module → sealed DTO hierarchy → strategy handlers → springdoc contract →
-negative tests (unknown type, wrong-subtype fields) → generated TypeScript client demo.
+Roadmap (remaining): generated TypeScript client demo from the springdoc contract.
 
-## 8. Further reading
+## 8. Running & testing
+
+```bash
+# run all tests (unit + integration)
+mvn test -Dmaven.gitcommitid.skip=true
+
+# start the API on :8080 (profile defaults to `local`)
+mvn spring-boot:run -pl payment-api -Dmaven.gitcommitid.skip=true
+```
+
+Exercise the polymorphic endpoint:
+
+```bash
+# CARD → 201 {"id":"...","type":"CARD","amount":499.0,"status":"AUTHORIZED"}
+curl -s -X POST localhost:8080/api/v1/payments -H 'Content-Type: application/json' \
+  -d '{"type":"CARD","amount":499.00,"cardNumber":"4111111111111111","cvv":"123"}'
+
+# UPI → 201 status COLLECT_REQUESTED
+curl -s -X POST localhost:8080/api/v1/payments -H 'Content-Type: application/json' \
+  -d '{"type":"UPI","amount":250.50,"vpa":"user@upi"}'
+
+# NET_BANKING → 201 status REDIRECT_INITIATED
+curl -s -X POST localhost:8080/api/v1/payments -H 'Content-Type: application/json' \
+  -d '{"type":"NET_BANKING","amount":1200.00,"bankCode":"HDFC"}'
+
+# unknown discriminator → 400 ProblemDetail listing allowed types
+curl -s -X POST localhost:8080/api/v1/payments -H 'Content-Type: application/json' \
+  -d '{"type":"CRYPTO","amount":42.00}'
+
+# fetch by id (unknown id → 404 ProblemDetail)
+curl -s localhost:8080/api/v1/payments/<id>
+```
+
+Swagger UI with the generated oneOf + discriminator contract: <http://localhost:8080/swagger-ui.html>
+(raw spec at `/v3/api-docs`).
+
+## 9. Further reading
 
 - [Jackson polymorphic deserialization docs](https://github.com/FasterXML/jackson-docs/wiki/JacksonPolymorphicDeserialization)
 - [OpenAPI 3 — oneOf & discriminator](https://swagger.io/docs/specification/v3_0/data-models/inheritance-and-polymorphism/)

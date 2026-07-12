@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: payment-api
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: 8080
+
+springdoc:
+  swagger-ui:
+    default-model-expand-depth: 3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: Polymorphic payment endpoint — one POST, many concrete shapes
+    version: 0.0.1-SNAPSHOT
+
+logging:
+  level:
+    com.org.learning: INFO
