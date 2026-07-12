@@ -11,15 +11,15 @@ discriminator.
 
 ## Table of contents
 
-1. [The problem](#1-the-problem)
-2. [Jackson polymorphism toolbox](#2-jackson-polymorphism-toolbox)
-3. [Design chosen for this repo](#3-design-chosen-for-this-repo)
-4. [OpenAPI: oneOf + discriminator](#4-openapi-oneof--discriminator)
-5. [Validation & error shape](#5-validation--error-shape)
-6. [Security note: why never enable default typing](#6-security-note-why-never-enable-default-typing)
-7. [Module layout](#7-module-layout)
-8. [Running & testing](#8-running--testing)
-9. [Further reading](#9-further-reading)
+1. 💡 [The problem](#1-the-problem)
+2. 🔹 [Jackson polymorphism toolbox](#2-jackson-polymorphism-toolbox)
+3. 🏗️ [Design chosen for this repo](#3-design-chosen-for-this-repo)
+4. 🌐 [OpenAPI: oneOf + discriminator](#4-openapi-oneof--discriminator)
+5. ⚠️ [Validation & error shape](#5-validation--error-shape)
+6. 🔐 [Security note: why never enable default typing](#6-security-note-why-never-enable-default-typing)
+7. 🏗️ [Module layout](#7-module-layout)
+8. 🧪 [Running & testing](#8-running--testing)
+9. 📚 [Further reading](#9-further-reading)
 
 ---
 
