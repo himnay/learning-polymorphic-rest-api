@@ -23,7 +23,8 @@ discriminator.
 
 ---
 
-## 1. The problem
+<a id="1-the-problem"></a>
+## 1. 💡 The problem
 
 A `POST /payments` endpoint must accept several payment methods with different required
 fields. Three naive designs all hurt:
@@ -52,7 +53,8 @@ flowchart LR
     C & U & N --> V[Bean validation per subtype] --> H[Single @PostMapping handler<br/>sealed-interface switch]
 ```
 
-## 2. Jackson polymorphism toolbox
+<a id="2-jackson-polymorphism-toolbox"></a>
+## 2. 🔹 Jackson polymorphism toolbox
 
 | Annotation | Role |
 |---|---|
@@ -83,7 +85,8 @@ public record CardPaymentRequest(String type, @NotNull @Positive BigDecimal amou
 Responses go polymorphic the same way — the discriminator is serialized back, so clients
 can dispatch without sniffing fields.
 
-## 3. Design chosen for this repo
+<a id="3-design-chosen-for-this-repo"></a>
+## 3. 🏗️ Design chosen for this repo
 
 - **Discriminator**: explicit `type` string enum, `EXISTING_PROPERTY` + `visible = true`
 - **Sealed interface + records** for request/response hierarchies — exhaustiveness at compile time
@@ -91,7 +94,8 @@ can dispatch without sniffing fields.
 - **Strategy pattern** underneath: `PaymentHandler<T extends PaymentRequest>` beans keyed by type for open/closed extension
 - **No class names on the wire, ever** (`use = Id.CLASS` banned — see security note)
 
-## 4. OpenAPI: oneOf + discriminator
+<a id="4-openapi-oneof--discriminator"></a>
+## 4. 🌐 OpenAPI: oneOf + discriminator
 
 Polymorphism is contract-first representable — springdoc generates this from the
 annotations:
@@ -111,13 +115,15 @@ PaymentRequest:
 Generated clients (openapi-generator) then produce proper subtype hierarchies instead of
 `Object`.
 
-## 5. Validation & error shape
+<a id="5-validation--error-shape"></a>
+## 5. ⚠️ Validation & error shape
 
 - Subtype-specific constraints live on the subtype record — `@Valid` cascades after Jackson resolves the type
 - Unknown discriminator → Jackson `InvalidTypeIdException` → advice maps to `400` ProblemDetail listing allowed values
 - Cross-field rules (`cvv` required only for cards) stay inside the card record — no global if-soup
 
-## 6. Security note: why never enable default typing
+<a id="6-security-note-why-never-enable-default-typing"></a>
+## 6. 🔐 Security note: why never enable default typing
 
 Jackson's `enableDefaultTyping()` / `@JsonTypeInfo(use = Id.CLASS)` deserializes attacker
 supplied class names — the root of a long CVE family (gadget-chain RCE). Rules this repo
@@ -127,7 +133,8 @@ follows:
 - never `Id.CLASS`/`Id.MINIMAL_CLASS` on internet-facing DTOs
 - if dynamic typing is unavoidable, register a strict `PolymorphicTypeValidator`
 
-## 7. Module layout
+<a id="7-module-layout"></a>
+## 7. 🏗️ Module layout
 
 ```
 learning-polymorphic-rest-api/
@@ -157,7 +164,8 @@ learning-polymorphic-rest-api/
 
 Roadmap (remaining): generated TypeScript client demo from the springdoc contract.
 
-## 8. Running & testing
+<a id="8-running--testing"></a>
+## 8. 🧪 Running & testing
 
 ```bash
 # run all tests (unit + integration)
@@ -193,7 +201,8 @@ curl -s localhost:8080/api/v1/payments/<id>
 Swagger UI with the generated oneOf + discriminator contract: <http://localhost:8080/swagger-ui.html>
 (raw spec at `/v3/api-docs`).
 
-## 9. Further reading
+<a id="9-further-reading"></a>
+## 9. 📚 Further reading
 
 - [Jackson polymorphic deserialization docs](https://github.com/FasterXML/jackson-docs/wiki/JacksonPolymorphicDeserialization)
 - [OpenAPI 3 — oneOf & discriminator](https://swagger.io/docs/specification/v3_0/data-models/inheritance-and-polymorphism/)
