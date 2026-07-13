@@ -88,11 +88,15 @@ can dispatch without sniffing fields.
 <a id="3-design-chosen-for-this-repo"></a>
 ## 3. 🏗️ Design chosen for this repo
 
+<ul>
+
 - **Discriminator**: explicit `type` string enum, `EXISTING_PROPERTY` + `visible = true`
 - **Sealed interface + records** for request/response hierarchies — exhaustiveness at compile time
 - **Single controller endpoint**, service-level `switch (request)` pattern matching
 - **Strategy pattern** underneath: `PaymentHandler<T extends PaymentRequest>` beans keyed by type for open/closed extension
 - **No class names on the wire, ever** (`use = Id.CLASS` banned — see security note)
+
+</ul>
 
 <a id="4-openapi-oneof--discriminator"></a>
 ## 4. 🌐 OpenAPI: oneOf + discriminator
@@ -118,9 +122,13 @@ Generated clients (openapi-generator) then produce proper subtype hierarchies in
 <a id="5-validation--error-shape"></a>
 ## 5. ⚠️ Validation & error shape
 
+<ul>
+
 - Subtype-specific constraints live on the subtype record — `@Valid` cascades after Jackson resolves the type
 - Unknown discriminator → Jackson `InvalidTypeIdException` → advice maps to `400` ProblemDetail listing allowed values
 - Cross-field rules (`cvv` required only for cards) stay inside the card record — no global if-soup
+
+</ul>
 
 <a id="6-security-note-why-never-enable-default-typing"></a>
 ## 6. 🔐 Security note: why never enable default typing
@@ -129,9 +137,13 @@ Jackson's `enableDefaultTyping()` / `@JsonTypeInfo(use = Id.CLASS)` deserializes
 supplied class names — the root of a long CVE family (gadget-chain RCE). Rules this repo
 follows:
 
+<ul>
+
 - discriminator values are **logical names**, mapped through an explicit `@JsonSubTypes` allow-list
 - never `Id.CLASS`/`Id.MINIMAL_CLASS` on internet-facing DTOs
 - if dynamic typing is unavoidable, register a strict `PolymorphicTypeValidator`
+
+</ul>
 
 <a id="7-module-layout"></a>
 ## 7. 🏗️ Module layout
@@ -204,7 +216,11 @@ Swagger UI with the generated oneOf + discriminator contract: <http://localhost:
 <a id="9-further-reading"></a>
 ## 9. 📚 Further reading
 
+<ul>
+
 - [Jackson polymorphic deserialization docs](https://github.com/FasterXML/jackson-docs/wiki/JacksonPolymorphicDeserialization)
 - [OpenAPI 3 — oneOf & discriminator](https://swagger.io/docs/specification/v3_0/data-models/inheritance-and-polymorphism/)
 - [Baeldung — inheritance with Jackson](https://www.baeldung.com/jackson-inheritance)
 - [CVE history of Jackson default typing](https://cowtowncoder.medium.com/on-jackson-cves-dont-panic-here-is-what-you-need-to-know-54cd0d6e8062)
+
+</ul>
