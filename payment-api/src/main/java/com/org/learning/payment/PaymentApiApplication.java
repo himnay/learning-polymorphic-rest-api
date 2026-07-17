@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import java.util.Map;
 
 @SpringBootApplication
-public class PaymentApiApplication {
+class PaymentApiApplication {
 
     public static void main(String[] args) {
         var application = new SpringApplication(PaymentApiApplication.class);
