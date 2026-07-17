@@ -29,11 +29,11 @@ discriminator.
 A `POST /payments` endpoint must accept several payment methods with different required
 fields. Three naive designs all hurt:
 
-| Anti-pattern | Pain |
-|---|---|
-| One mega-DTO with every field nullable | Validation becomes if-soup; the contract lies |
+| Anti-pattern                                             | Pain                                             |
+|----------------------------------------------------------|--------------------------------------------------|
+| One mega-DTO with every field nullable                   | Validation becomes if-soup; the contract lies    |
 | Endpoint per subtype (`/payments/card`, `/payments/upi`) | Client switch statements; N endpoints to version |
-| `Map<String,Object>` payloads | No contract at all |
+| `Map<String,Object>` payloads                            | No contract at all                               |
 
 The polymorphic answer: one endpoint, an explicit **discriminator field**, and the
 framework resolves the concrete type:
@@ -56,12 +56,12 @@ flowchart LR
 <a id="2-jackson-polymorphism-toolbox"></a>
 ## 2. 🔹 Jackson polymorphism toolbox
 
-| Annotation | Role |
-|---|---|
+| Annotation                                                                                  | Role                                                                                   |
+|---------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
 | `@JsonTypeInfo(use = NAME, include = EXISTING_PROPERTY, property = "type", visible = true)` | Declares the discriminator; `EXISTING_PROPERTY` keeps `type` a real, validatable field |
-| `@JsonSubTypes({@Type(value = CardPaymentRequest.class, name = "CARD"), ...})` | Maps discriminator values to classes |
-| `@JsonTypeName("CARD")` | Alternative per-subtype naming |
-| `PolymorphicTypeValidator` | Allow-list guard when type names come from data |
+| `@JsonSubTypes({@Type(value = CardPaymentRequest.class, name = "CARD"), ...})`              | Maps discriminator values to classes                                                   |
+| `@JsonTypeName("CARD")`                                                                     | Alternative per-subtype naming                                                         |
+| `PolymorphicTypeValidator`                                                                  | Allow-list guard when type names come from data                                        |
 
 Modern Java pairing: make the parent a **sealed interface** — the compiler then guarantees
 the `@JsonSubTypes` list and the business `switch` cover the same set:
