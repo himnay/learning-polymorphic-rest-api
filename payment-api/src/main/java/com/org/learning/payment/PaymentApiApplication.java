@@ -8,6 +8,7 @@ import java.util.Map;
 @SpringBootApplication
 class PaymentApiApplication {
 
+    /** Application entry point. */
     public static void main(String[] args) {
         var application = new SpringApplication(PaymentApiApplication.class);
         // config is per-profile only (application-<profile>.yml) — fall back to local

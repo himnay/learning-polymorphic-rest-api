@@ -27,12 +27,14 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
+    /** Creates. */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PaymentResponse create(@RequestBody @Valid PaymentRequest request) {
         return paymentService.create(request);
     }
 
+    /** Returns the get. */
     @GetMapping("/{id}")
     public PaymentResponse get(@PathVariable UUID id) {
         return paymentService.get(id);

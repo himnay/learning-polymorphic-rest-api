@@ -25,6 +25,7 @@ public class PaymentControllerAdvice {
             .map(JsonSubTypes.Type::name)
             .collect(Collectors.joining(", "));
 
+    /** Handles validation. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
         var message = ex.getBindingResult().getFieldErrors().stream()
@@ -60,6 +61,7 @@ public class PaymentControllerAdvice {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
     }
 
+    /** Handles not found. */
     @ExceptionHandler(PaymentNotFoundException.class)
     public ProblemDetail handleNotFound(PaymentNotFoundException ex) {
         log.warn(ex.getMessage());

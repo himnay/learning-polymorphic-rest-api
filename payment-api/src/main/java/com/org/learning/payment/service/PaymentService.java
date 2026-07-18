@@ -29,6 +29,7 @@ public class PaymentService {
     private final List<PaymentHandler<? extends PaymentRequest>> handlers;
     private final Map<UUID, PaymentResponse> store = new ConcurrentHashMap<>();
 
+    /** Creates. */
     public PaymentResponse create(PaymentRequest request) {
         var response = switch (request) {
             case CardPaymentRequest card -> handlerFor(card).handle(card);
@@ -39,6 +40,7 @@ public class PaymentService {
         return response;
     }
 
+    /** Returns the get. */
     public PaymentResponse get(UUID id) {
         var response = store.get(id);
         if (response == null) {
