@@ -21,8 +21,8 @@ import java.util.UUID;
  * from the {@code type} discriminator, then {@code @Valid} cascades the subtype's constraints.
  */
 @RestController
-@RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
+@RequestMapping("/api/v1/payments")
 public class PaymentController {
 
     private final PaymentService paymentService;

@@ -15,8 +15,8 @@ import tools.jackson.databind.exc.InvalidTypeIdException;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-@RestControllerAdvice
 @Slf4j
+@RestControllerAdvice
 public class PaymentControllerAdvice {
 
     /** Allowed discriminator values, derived from the @JsonSubTypes allow-list — single source of truth. */

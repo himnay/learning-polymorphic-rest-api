@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
-@Component
 @Slf4j
+@Component
 public class CardPaymentHandler implements PaymentHandler<CardPaymentRequest> {
 
     @Override

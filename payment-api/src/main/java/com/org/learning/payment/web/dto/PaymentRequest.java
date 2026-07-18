@@ -19,8 +19,8 @@ import java.math.BigDecimal;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY,
         property = "type", visible = true)
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = CardPaymentRequest.class, name = "CARD"),
         @JsonSubTypes.Type(value = UpiPaymentRequest.class, name = "UPI"),
+        @JsonSubTypes.Type(value = CardPaymentRequest.class, name = "CARD"),
         @JsonSubTypes.Type(value = NetBankingPaymentRequest.class, name = "NET_BANKING")
 })
 public sealed interface PaymentRequest
