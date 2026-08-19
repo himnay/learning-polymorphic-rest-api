@@ -1,4 +1,4 @@
-# Learning Polymorphic REST APIs
+# <span style="color:hsl(289,68%,44%)">Learning Polymorphic REST APIs</span>
 
 <img src="image/spring-logo.png" alt="Spring" width="80"/>
 
@@ -9,7 +9,7 @@ discriminator.
 
 ---
 
-## Table of contents
+## <span style="color:hsl(322,68%,44%)">Table of contents</span>
 
 1. 💡 [The problem](#1-the-problem)
 2. 🔹 [Jackson polymorphism toolbox](#2-jackson-polymorphism-toolbox)
@@ -24,7 +24,7 @@ discriminator.
 ---
 
 <a id="1-the-problem"></a>
-## 1. 💡 The problem
+## <span style="color:hsl(354,68%,44%)">1. 💡 The problem</span>
 
 A `POST /payments` endpoint must accept several payment methods with different required
 fields. Three naive designs all hurt:
@@ -54,7 +54,7 @@ flowchart LR
 ```
 
 <a id="2-jackson-polymorphism-toolbox"></a>
-## 2. 🔹 Jackson polymorphism toolbox
+## <span style="color:hsl(27,68%,44%)">2. 🔹 Jackson polymorphism toolbox</span>
 
 | Annotation                                                                                  | Role                                                                                   |
 |---------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
@@ -86,7 +86,7 @@ Responses go polymorphic the same way — the discriminator is serialized back, 
 can dispatch without sniffing fields.
 
 <a id="3-design-chosen-for-this-repo"></a>
-## 3. 🏗️ Design chosen for this repo
+## <span style="color:hsl(60,68%,32%)">3. 🏗️ Design chosen for this repo</span>
 
 <ul>
 
@@ -99,7 +99,7 @@ can dispatch without sniffing fields.
 </ul>
 
 <a id="4-openapi-oneof--discriminator"></a>
-## 4. 🌐 OpenAPI: oneOf + discriminator
+## <span style="color:hsl(93,68%,32%)">4. 🌐 OpenAPI: oneOf + discriminator</span>
 
 Polymorphism is contract-first representable — springdoc generates this from the
 annotations:
@@ -120,7 +120,7 @@ Generated clients (openapi-generator) then produce proper subtype hierarchies in
 `Object`.
 
 <a id="5-validation--error-shape"></a>
-## 5. ⚠️ Validation & error shape
+## <span style="color:hsl(125,68%,32%)">5. ⚠️ Validation & error shape</span>
 
 <ul>
 
@@ -131,7 +131,7 @@ Generated clients (openapi-generator) then produce proper subtype hierarchies in
 </ul>
 
 <a id="6-security-note-why-never-enable-default-typing"></a>
-## 6. 🔐 Security note: why never enable default typing
+## <span style="color:hsl(158,68%,36%)">6. 🔐 Security note: why never enable default typing</span>
 
 Jackson's `enableDefaultTyping()` / `@JsonTypeInfo(use = Id.CLASS)` deserializes attacker
 supplied class names — the root of a long CVE family (gadget-chain RCE). Rules this repo
@@ -146,7 +146,7 @@ follows:
 </ul>
 
 <a id="7-module-layout"></a>
-## 7. 🏗️ Module layout
+## <span style="color:hsl(191,68%,36%)">7. 🏗️ Module layout</span>
 
 ```
 learning-polymorphic-rest-api/
@@ -177,7 +177,7 @@ learning-polymorphic-rest-api/
 Roadmap (remaining): generated TypeScript client demo from the springdoc contract.
 
 <a id="8-running--testing"></a>
-## 8. 🧪 Running & testing
+## <span style="color:hsl(224,68%,44%)">8. 🧪 Running & testing</span>
 
 ```bash
 # run all tests (unit + integration)
@@ -214,7 +214,7 @@ Swagger UI with the generated oneOf + discriminator contract: <http://localhost:
 (raw spec at `/v3/api-docs`).
 
 <a id="9-further-reading"></a>
-## 9. 📚 Further reading
+## <span style="color:hsl(256,68%,44%)">9. 📚 Further reading</span>
 
 <ul>
 
