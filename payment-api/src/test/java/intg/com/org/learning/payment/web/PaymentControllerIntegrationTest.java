@@ -111,6 +111,19 @@ class PaymentControllerIntegrationTest {
     }
 
     @Test
+    void missingDiscriminator_returns400SayingTypeIsMissing() throws Exception {
+        var body = """
+                { "amount": 42.00, "vpa": "user@bank" }
+                """;
+
+        mockMvc.perform(post("/api/v1/payments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail", containsString("Missing payment 'type'")));
+    }
+
+    @Test
     void wrongSubtypeFields_cardWithoutCvv_returns400() throws Exception {
         // UPI-shaped fields under a CARD discriminator — card constraints must reject it
         var body = """

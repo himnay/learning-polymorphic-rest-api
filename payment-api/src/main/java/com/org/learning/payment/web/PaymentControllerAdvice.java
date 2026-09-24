@@ -43,10 +43,7 @@ public class PaymentControllerAdvice {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ProblemDetail handleUnreadable(HttpMessageNotReadableException ex) {
         if (findInvalidTypeId(ex) instanceof InvalidTypeIdException typeEx) {
-            var detail = "Unknown payment type '%s'. Allowed types: %s"
-                    .formatted(typeEx.getTypeId(), ALLOWED_TYPES);
-            log.warn(detail);
-            return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+            return handleInvalidTypeId(typeEx);
         }
         log.warn("Malformed request body: {}", ex.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Malformed request body");
@@ -55,8 +52,9 @@ public class PaymentControllerAdvice {
     /** Jackson 3 exceptions are unchecked — cover the case where one escapes unwrapped. */
     @ExceptionHandler(InvalidTypeIdException.class)
     public ProblemDetail handleInvalidTypeId(InvalidTypeIdException ex) {
-        var detail = "Unknown payment type '%s'. Allowed types: %s"
-                .formatted(ex.getTypeId(), ALLOWED_TYPES);
+        var detail = ex.getTypeId() == null
+                ? "Missing payment 'type'. Allowed types: %s".formatted(ALLOWED_TYPES)
+                : "Unknown payment type '%s'. Allowed types: %s".formatted(ex.getTypeId(), ALLOWED_TYPES);
         log.warn(detail);
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
     }
