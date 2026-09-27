@@ -33,7 +33,7 @@ fields. Three naive designs all hurt:
 |----------------------------------------------------------|--------------------------------------------------|
 | One mega-DTO with every field nullable                   | Validation becomes if-soup; the contract lies    |
 | Endpoint per subtype (`/payments/card`, `/payments/upi`) | Client switch statements; N endpoints to version |
-| `Map<String,Object>` payloads                            | No contract at all                               |
+| [`Map<String,Object>`][Map] payloads                     | No contract at all                               |
 
 The polymorphic answer: one endpoint, an explicit **discriminator field**, and the
 framework resolves the concrete type:
@@ -56,12 +56,12 @@ flowchart LR
 <a id="2-jackson-polymorphism-toolbox"></a>
 ## <span style="color:hsl(342,80%,58%)">2. 🔹 Jackson polymorphism toolbox</span>
 
-| Annotation                                                                                  | Role                                                                                   |
-|---------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
-| `@JsonTypeInfo(use = NAME, include = EXISTING_PROPERTY, property = "type", visible = true)` | Declares the discriminator; `EXISTING_PROPERTY` keeps `type` a real, validatable field |
-| `@JsonSubTypes({@Type(value = CardPaymentRequest.class, name = "CARD"), ...})`              | Maps discriminator values to classes                                                   |
-| `@JsonTypeName("CARD")`                                                                     | Alternative per-subtype naming                                                         |
-| `PolymorphicTypeValidator`                                                                  | Allow-list guard when type names come from data                                        |
+| Annotation                                                                                                  | Role                                                                                   |
+|-------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| [`@JsonTypeInfo(use = NAME, include = EXISTING_PROPERTY, property = "type", visible = true)`][JsonTypeInfo] | Declares the discriminator; `EXISTING_PROPERTY` keeps `type` a real, validatable field |
+| [`@JsonSubTypes({@Type(value = CardPaymentRequest.class, name = "CARD"), ...})`][JsonSubTypes]              | Maps discriminator values to classes                                                   |
+| [`@JsonTypeName("CARD")`][JsonTypeName]                                                                     | Alternative per-subtype naming                                                         |
+| [`PolymorphicTypeValidator`][PolymorphicTypeValidator]                                                      | Allow-list guard when type names come from data                                        |
 
 Modern Java pairing: make the parent a **sealed interface** — the compiler then guarantees
 the `@JsonSubTypes` list and the business `switch` cover the same set:
@@ -117,15 +117,15 @@ PaymentRequest:
 ```
 
 Generated clients (openapi-generator) then produce proper subtype hierarchies instead of
-`Object`.
+[`Object`][Object].
 
 <a id="5-validation--error-shape"></a>
 ## <span style="color:hsl(34,80%,58%)">5. ⚠️ Validation & error shape</span>
 
 <ul>
 
-- Subtype-specific constraints live on the subtype record — `@Valid` cascades after Jackson resolves the type
-- Unknown discriminator → Jackson `InvalidTypeIdException` → advice maps to `400` ProblemDetail listing allowed values
+- Subtype-specific constraints live on the subtype record — [`@Valid`][Valid] cascades after Jackson resolves the type
+- Unknown discriminator → Jackson [`InvalidTypeIdException`][InvalidTypeIdException] → advice maps to `400` ProblemDetail listing allowed values
 - Cross-field rules (`cvv` required only for cards) stay inside the card record — no global if-soup
 
 </ul>
@@ -133,15 +133,15 @@ Generated clients (openapi-generator) then produce proper subtype hierarchies in
 <a id="6-security-note-why-never-enable-default-typing"></a>
 ## <span style="color:hsl(172,80%,58%)">6. 🔐 Security note: why never enable default typing</span>
 
-Jackson's `enableDefaultTyping()` / `@JsonTypeInfo(use = Id.CLASS)` deserializes attacker
+Jackson's `enableDefaultTyping()` / [`@JsonTypeInfo(use = Id.CLASS)`][JsonTypeInfo] deserializes attacker
 supplied class names — the root of a long CVE family (gadget-chain RCE). Rules this repo
 follows:
 
 <ul>
 
-- discriminator values are **logical names**, mapped through an explicit `@JsonSubTypes` allow-list
+- discriminator values are **logical names**, mapped through an explicit [`@JsonSubTypes`][JsonSubTypes] allow-list
 - never `Id.CLASS`/`Id.MINIMAL_CLASS` on internet-facing DTOs
-- if dynamic typing is unavoidable, register a strict `PolymorphicTypeValidator`
+- if dynamic typing is unavoidable, register a strict [`PolymorphicTypeValidator`][PolymorphicTypeValidator]
 
 </ul>
 
@@ -224,3 +224,14 @@ Swagger UI with the generated oneOf + discriminator contract: <http://localhost:
 - [CVE history of Jackson default typing](https://cowtowncoder.medium.com/on-jackson-cves-dont-panic-here-is-what-you-need-to-know-54cd0d6e8062)
 
 </ul>
+
+<!-- Library classes mentioned above, linked to their source at the versions this project builds with. -->
+
+[InvalidTypeIdException]: https://github.com/FasterXML/jackson-databind/blob/jackson-databind-3.1.5/src/main/java/tools/jackson/databind/exc/InvalidTypeIdException.java
+[JsonSubTypes]: https://github.com/FasterXML/jackson-annotations/blob/jackson-annotations-2.21/src/main/java/com/fasterxml/jackson/annotation/JsonSubTypes.java
+[JsonTypeInfo]: https://github.com/FasterXML/jackson-annotations/blob/jackson-annotations-2.21/src/main/java/com/fasterxml/jackson/annotation/JsonTypeInfo.java
+[JsonTypeName]: https://github.com/FasterXML/jackson-annotations/blob/jackson-annotations-2.21/src/main/java/com/fasterxml/jackson/annotation/JsonTypeName.java
+[Map]: https://github.com/openjdk/jdk/blob/jdk-25-ga/src/java.base/share/classes/java/util/Map.java
+[Object]: https://github.com/openjdk/jdk/blob/jdk-25-ga/src/java.base/share/classes/java/lang/Object.java
+[PolymorphicTypeValidator]: https://github.com/FasterXML/jackson-databind/blob/jackson-databind-3.1.5/src/main/java/tools/jackson/databind/jsontype/PolymorphicTypeValidator.java
+[Valid]: https://github.com/jakartaee/validation/blob/3.1.1/src/main/java/jakarta/validation/Valid.java
