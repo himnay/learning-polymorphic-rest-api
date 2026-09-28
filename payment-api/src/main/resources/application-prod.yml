@@ -13,6 +13,10 @@ springdoc:
     default-model-expand-depth: 3
 
 management:
+  info:
+    env:
+      # the info.* keys below only reach /actuator/info with this on (off by default since Boot 2.6)
+      enabled: true
   endpoints:
     web:
       exposure:

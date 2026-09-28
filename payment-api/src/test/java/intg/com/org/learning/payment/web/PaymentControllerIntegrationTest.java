@@ -1,7 +1,9 @@
 package com.org.learning.payment.web;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.org.learning.payment.web.dto.CardPaymentRequest;
 import com.org.learning.payment.web.dto.NetBankingPaymentRequest;
+import com.org.learning.payment.web.dto.PaymentRequest;
 import com.org.learning.payment.web.dto.PaymentResponse;
 import com.org.learning.payment.web.dto.UpiPaymentRequest;
 import org.junit.jupiter.api.Test;
@@ -145,5 +147,25 @@ class PaymentControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/payments/{id}", id))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail", containsString(id.toString())));
+    }
+
+    @Test
+    void openApiContract_mapsEveryWireTypeToItsSubtypeSchema() throws Exception {
+        var docs = mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.components.schemas.PaymentRequest.discriminator.propertyName").value("type"));
+        // one mapping entry per @JsonSubTypes name, so the contract and the deserializer agree
+        for (JsonSubTypes.Type subtype : PaymentRequest.class.getAnnotation(JsonSubTypes.class).value()) {
+            docs.andExpect(jsonPath("$.components.schemas.PaymentRequest.discriminator.mapping['%s']"
+                    .formatted(subtype.name()))
+                    .value("#/components/schemas/" + subtype.value().getSimpleName()));
+        }
+    }
+
+    @Test
+    void actuatorInfo_includesTheInfoAppProperties() throws Exception {
+        mockMvc.perform(get("/actuator/info"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.app.name").value("payment-api"));
     }
 }
