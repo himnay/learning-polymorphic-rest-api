@@ -78,7 +78,8 @@ public sealed interface PaymentRequest permits CardPaymentRequest, UpiPaymentReq
 }
 
 public record CardPaymentRequest(String type, @NotNull @Positive BigDecimal amount,
-        @CreditCardNumber String cardNumber, @Pattern(regexp = "\\d{3}") String cvv)
+        @NotBlank @Pattern(regexp = "\\d{16}") String cardNumber,
+        @NotBlank @Pattern(regexp = "\\d{3}") String cvv)
         implements PaymentRequest {}
 ```
 
@@ -90,10 +91,10 @@ can dispatch without sniffing fields.
 
 <ul>
 
-- **Discriminator**: explicit `type` string enum, `EXISTING_PROPERTY` + `visible = true`
+- **Discriminator**: an explicit `type` string (`CARD`, `UPI`, `NET_BANKING`), `EXISTING_PROPERTY` + `visible = true`
 - **Sealed interface + records** for request/response hierarchies — exhaustiveness at compile time
 - **Single controller endpoint**, service-level `switch (request)` pattern matching
-- **Strategy pattern** underneath: `PaymentHandler<T extends PaymentRequest>` beans keyed by type for open/closed extension
+- **Strategy pattern** underneath: `PaymentHandler<T extends PaymentRequest>` beans, each picked by its `supports()` check, for open/closed extension
 - **No class names on the wire, ever** (`use = Id.CLASS` banned — see security note)
 
 </ul>
@@ -101,19 +102,40 @@ can dispatch without sniffing fields.
 <a id="4-openapi-oneof--discriminator"></a>
 ## <span style="color:hsl(257,80%,58%)">4. 🌐 OpenAPI: oneOf + discriminator</span>
 
-Polymorphism is contract-first representable — springdoc generates this from the
-annotations:
+Polymorphism is contract-first representable. springdoc turns the Jackson annotations into a
+`oneOf` request body over the three subtypes, and each subtype schema extends `PaymentRequest`
+through `allOf`. The discriminator `mapping` comes from
+[`@Schema(discriminatorMapping = ...)`][Schema] on `PaymentRequest`: without it, OpenAPI assumes
+the discriminator values are the schema names (`CardPaymentRequest`, ...), so a generated client
+would send a `type` the API rejects. An integration test keeps the mapping equal to the
+[`@JsonSubTypes`][JsonSubTypes] names. Abridged from `/v3/api-docs.yaml`:
 
 ```yaml
-PaymentRequest:
-  oneOf:
-    - $ref: '#/components/schemas/CardPaymentRequest'
-    - $ref: '#/components/schemas/UpiPaymentRequest'
-  discriminator:
-    propertyName: type
-    mapping:
-      CARD: '#/components/schemas/CardPaymentRequest'
-      UPI: '#/components/schemas/UpiPaymentRequest'
+paths:
+  /api/v1/payments:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/CardPaymentRequest'
+                - $ref: '#/components/schemas/NetBankingPaymentRequest'
+                - $ref: '#/components/schemas/UpiPaymentRequest'
+components:
+  schemas:
+    PaymentRequest:
+      discriminator:
+        propertyName: type
+        mapping:
+          CARD: '#/components/schemas/CardPaymentRequest'
+          UPI: '#/components/schemas/UpiPaymentRequest'
+          NET_BANKING: '#/components/schemas/NetBankingPaymentRequest'
+    CardPaymentRequest:
+      allOf:
+        - $ref: '#/components/schemas/PaymentRequest'
+        - type: object
+          properties: # type, amount, cardNumber, cvv, with their validation constraints
 ```
 
 Generated clients (openapi-generator) then produce proper subtype hierarchies instead of
@@ -125,7 +147,7 @@ Generated clients (openapi-generator) then produce proper subtype hierarchies in
 <ul>
 
 - Subtype-specific constraints live on the subtype record — [`@Valid`][Valid] cascades after Jackson resolves the type
-- Unknown discriminator → Jackson [`InvalidTypeIdException`][InvalidTypeIdException] → advice maps to `400` ProblemDetail listing allowed values
+- Unknown or missing discriminator → Jackson [`InvalidTypeIdException`][InvalidTypeIdException] → advice maps to `400` ProblemDetail listing allowed values
 - Cross-field rules (`cvv` required only for cards) stay inside the card record — no global if-soup
 
 </ul>
@@ -133,9 +155,10 @@ Generated clients (openapi-generator) then produce proper subtype hierarchies in
 <a id="6-security-note-why-never-enable-default-typing"></a>
 ## <span style="color:hsl(172,80%,58%)">6. 🔐 Security note: why never enable default typing</span>
 
-Jackson's `enableDefaultTyping()` / [`@JsonTypeInfo(use = Id.CLASS)`][JsonTypeInfo] deserializes attacker
-supplied class names — the root of a long CVE family (gadget-chain RCE). Rules this repo
-follows:
+Jackson 2's `enableDefaultTyping()` and [`@JsonTypeInfo(use = Id.CLASS)`][JsonTypeInfo] deserialize
+attacker-supplied class names — the root of a long CVE family (gadget-chain RCE). Jackson 3, which
+Spring Boot 4 uses, removed `enableDefaultTyping()`; its replacement, `activateDefaultTyping`, only
+works with a type validator. Rules this repo follows:
 
 <ul>
 
@@ -150,7 +173,7 @@ follows:
 
 ```
 learning-polymorphic-rest-api/
-├── pom.xml                                # super-pom parent, Java 25, Spring Boot 4
+├── pom.xml                                # super-pom 1.2.0 parent, Java 27, Spring Boot 4
 └── payment-api/
     ├── pom.xml                            # web + validation + springdoc, Boot 4 webmvc test slice
     └── src
@@ -160,7 +183,7 @@ learning-polymorphic-rest-api/
         │   │   ├── PaymentController.java        # single POST /api/v1/payments + GET /{id}
         │   │   ├── PaymentControllerAdvice.java  # 400 ProblemDetail (validation, unknown type), 404
         │   │   └── dto/
-        │   │       ├── PaymentRequest.java           # sealed interface + @JsonTypeInfo/@JsonSubTypes
+        │   │       ├── PaymentRequest.java           # sealed interface + @JsonTypeInfo/@JsonSubTypes + @Schema mapping
         │   │       ├── CardPaymentRequest.java       # "CARD"        — cardNumber (16 digits), cvv (3 digits)
         │   │       ├── UpiPaymentRequest.java        # "UPI"         — vpa (.+@.+)
         │   │       ├── NetBankingPaymentRequest.java # "NET_BANKING" — bankCode
@@ -190,7 +213,7 @@ mvn spring-boot:run -pl payment-api -Dmaven.gitcommitid.skip=true
 Exercise the polymorphic endpoint:
 
 ```bash
-# CARD → 201 {"id":"...","type":"CARD","amount":499.0,"status":"AUTHORIZED"}
+# CARD → 201 {"id":"...","type":"CARD","amount":499.00,"status":"AUTHORIZED"}
 curl -s -X POST localhost:8080/api/v1/payments -H 'Content-Type: application/json' \
   -d '{"type":"CARD","amount":499.00,"cardNumber":"4111111111111111","cvv":"123"}'
 
@@ -231,7 +254,8 @@ Swagger UI with the generated oneOf + discriminator contract: <http://localhost:
 [JsonSubTypes]: https://github.com/FasterXML/jackson-annotations/blob/jackson-annotations-2.21/src/main/java/com/fasterxml/jackson/annotation/JsonSubTypes.java
 [JsonTypeInfo]: https://github.com/FasterXML/jackson-annotations/blob/jackson-annotations-2.21/src/main/java/com/fasterxml/jackson/annotation/JsonTypeInfo.java
 [JsonTypeName]: https://github.com/FasterXML/jackson-annotations/blob/jackson-annotations-2.21/src/main/java/com/fasterxml/jackson/annotation/JsonTypeName.java
-[Map]: https://github.com/openjdk/jdk/blob/jdk-25-ga/src/java.base/share/classes/java/util/Map.java
-[Object]: https://github.com/openjdk/jdk/blob/jdk-25-ga/src/java.base/share/classes/java/lang/Object.java
+[Map]: https://github.com/openjdk/jdk/blob/jdk-27-ga/src/java.base/share/classes/java/util/Map.java
+[Object]: https://github.com/openjdk/jdk/blob/jdk-27-ga/src/java.base/share/classes/java/lang/Object.java
 [PolymorphicTypeValidator]: https://github.com/FasterXML/jackson-databind/blob/jackson-databind-3.1.5/src/main/java/tools/jackson/databind/jsontype/PolymorphicTypeValidator.java
+[Schema]: https://github.com/swagger-api/swagger-core/blob/v2.2.55/modules/swagger-annotations/src/main/java/io/swagger/v3/oas/annotations/media/Schema.java
 [Valid]: https://github.com/jakartaee/validation/blob/3.1.1/src/main/java/jakarta/validation/Valid.java
