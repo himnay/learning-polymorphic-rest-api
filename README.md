@@ -191,7 +191,7 @@ learning-polymorphic-rest-api/
         │   ├── handler/                   # strategy: PaymentHandler<T> + three @Component impls
         │   ├── service/PaymentService.java       # exhaustive switch dispatch + in-memory store
         │   └── exception/PaymentNotFoundException.java
-        ├── main/resources/                # application-local.yml / application-prod.yml, banner.txt
+        ├── main/resources/                # application.yml (local + prod sections), banner.txt
         └── test/java
             ├── unit/                      # @WebMvcTest subtype round-trips, error cases
             └── intg/                      # @SpringBootTest + MockMvc full flow
