@@ -1,12 +1,12 @@
+server:
+  port: 8080
+
 spring:
   application:
     name: payment-api
   threads:
     virtual:
       enabled: true
-
-server:
-  port: 8080
 
 springdoc:
   swagger-ui:
